@@ -1,0 +1,13 @@
+# Archivos de desarrollo
+*.log
+*.tmp
+.DS_Store
+.vscode/
+.idea/
+
+# Docker
+.dockerignore
+
+# Build artifacts
+build/
+dist/
