@@ -1,4 +1,4 @@
-# KraftDo Base Image
+# KraftDo Base Image Develop
 
 Imagen base Docker reutilizable para proyectos Laravel/PHP con Nginx, optimizada para aplicaciones web de alto rendimiento.
 
