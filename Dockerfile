@@ -1,18 +1,17 @@
 # =============================================================================
-# KRAFTDO BASE IMAGE - Imagen base reutilizable para proyectos Laravel/PHP
+# KRAFTDO BASE IMAGE - Actualizada para Laravel 13 & AI SDK
 # =============================================================================
-# Versión: PHP 8.3 + Nginx + Extensiones comunes
+# Versión: PHP 8.4 + Nginx + Extensiones comunes
 # Uso: FROM ghcr.io/buguenocesar92/kraftdo-base:latest
 
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 LABEL maintainer="buguenocesar92"
-LABEL description="Imagen base para proyectos KraftDo con PHP 8.3, Nginx y extensiones comunes"
-LABEL version="1.0.0"
+LABEL description="Imagen base para proyectos KraftDo con PHP 8.4, Nginx y soporte IA"
+LABEL version="1.1.0"
 
 # Instalar dependencias del sistema
 RUN apk update && apk add --no-cache \
-    # Dependencias runtime
     sqlite \
     libpng \
     libjpeg-turbo \
@@ -25,7 +24,9 @@ RUN apk update && apk add --no-cache \
     unzip \
     git \
     bash \
-    nginx
+    nginx \
+    # Dependencia necesaria para el AI SDK y procesamiento de señales
+    linux-headers
 
 # Instalar dependencias de desarrollo (temporal)
 RUN apk add --no-cache --virtual .build-deps \
@@ -47,10 +48,10 @@ RUN apk add --no-cache --virtual .build-deps \
     oniguruma-dev \
     curl-dev \
     icu-dev \
-    linux-headers \
     zlib-dev
 
 # Configurar e instalar extensiones PHP
+# Agregamos 'pcntl', fundamental para el manejo de procesos de los agentes de IA
 RUN docker-php-ext-configure gd \
         --with-freetype=/usr/include/ \
         --with-jpeg=/usr/include/ \
@@ -66,9 +67,10 @@ RUN docker-php-ext-configure gd \
         intl \
         sockets \
         bcmath \
-        exif
+        exif \
+        pcntl
 
-# Instalar Redis (extensión crítica para Laravel)
+# Instalar Redis (extensión crítica para Laravel y colas de IA)
 RUN pecl install redis \
     && docker-php-ext-enable redis
 
@@ -76,6 +78,7 @@ RUN pecl install redis \
 RUN apk del .build-deps \
     && rm -rf /var/cache/apk/* \
     && rm -rf /tmp/* \
+    # El comando rm -rf /var/tmp/* ayuda a mantener la imagen ligera
     && rm -rf /var/tmp/*
 
 # Copiar configuraciones base genéricas
@@ -85,18 +88,12 @@ COPY docker/nginx/nginx-base.conf /etc/nginx/nginx.conf
 
 # Crear directorios y usuarios necesarios
 RUN mkdir -p /var/log/php /tmp/opcache /var/www/html && \
-    # Crear usuario nginx si no existe
+    # Crear usuario nginx si no existe (UID/GID 82 es el estándar en Alpine)
     addgroup -g 82 -S nginx 2>/dev/null || true && \
     adduser -u 82 -D -S -G nginx nginx 2>/dev/null || true && \
-    # Establecer permisos
     chown nginx:nginx /var/log/php && \
     chmod 755 /tmp/opcache
 
-# Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Exponer puertos estándar
 EXPOSE 80 9000
-
-# No definir ENTRYPOINT - cada proyecto específico define el suyo
-# Esta imagen base proporciona solo la infraestructura base
