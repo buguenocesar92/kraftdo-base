@@ -16,6 +16,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Build Base Image
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
     
     steps:
     - name: Checkout
@@ -37,9 +39,13 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.OWNER }}/kraftdo-base
         tags: |
+          # Tag basado en la rama (ej: develop)
           type=ref,event=branch
+          # Tag 'latest' solo para la rama principal
           type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=php8.3
+          # Tag de la versión estable de PHP que estamos usando ahora
+          type=raw,value=php8.4
+          # Tag único por commit para trazabilidad
           type=sha,prefix={{branch}}-
     
     - name: Build and push
@@ -62,7 +68,8 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: '${{ env.REGISTRY }}/${{ env.OWNER }}/kraftdo-base:latest'
+        # Escanea la imagen específica que se acaba de construir (usando el primer tag generado)
+        image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/kraftdo-base:${{ needs.build.outputs.image_tag }}
         format: 'sarif'
         output: 'trivy-results.sarif'
 
